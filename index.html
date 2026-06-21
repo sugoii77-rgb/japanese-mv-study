@@ -494,14 +494,20 @@ function showPopup(e, word) {
   }
   popup.classList.add('show');
 
-  let left = e.clientX + 12, top = e.clientY - 20;
-  const w = 300, h = 150;
-  if (left + w > window.innerWidth - 10) left = e.clientX - w - 12;
-  if (top + h > window.innerHeight - 10) top = window.innerHeight - h - 10;
-  if (top < 10) top = 10;
-  popup.style.left = left + 'px';
-  popup.style.top  = top  + 'px';
-  popup.style.transform = '';
+  if (window.innerWidth < 600) {
+    popup.style.left = '50%';
+    popup.style.top  = '50%';
+    popup.style.transform = 'translate(-50%, -50%)';
+  } else {
+    let left = e.clientX + 12, top = e.clientY - 20;
+    const w = 300, h = 150;
+    if (left + w > window.innerWidth - 10) left = e.clientX - w - 12;
+    if (top + h > window.innerHeight - 10) top = window.innerHeight - h - 10;
+    if (top < 10) top = 10;
+    popup.style.left = left + 'px';
+    popup.style.top  = top  + 'px';
+    popup.style.transform = '';
+  }
 }
 
 function closePopup() { popup.classList.remove('show'); }
