@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌲 일본어 뮤직비디오 학습 — 森のちいさなレストラン</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0d150a;
+    color: #e8f0e0;
+    font-family: 'Segoe UI', 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+  }
+
+  header {
+    text-align: center;
+    padding: 18px;
+    background: linear-gradient(135deg, #0d2010, #1a2e0d);
+    border-bottom: 1px solid #2a4020;
+  }
+  header h1 { font-size: 1.3rem; color: #8fcc60; letter-spacing: 2px; }
+  header .subtitle { font-size: 0.85rem; color: #6a9a4a; margin-top: 3px; }
+  header p { font-size: 0.78rem; color: #7a9a6a; margin-top: 5px; }
+
+  .main {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    gap: 20px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  .video-wrap {
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 40px #4a8a204a;
+    background: #000;
+  }
+  .yt-container {
+    position: relative; width: 100%; padding-bottom: 56.25%; background: #000;
+  }
+  .yt-container iframe {
+    position: absolute; inset: 0; width: 100%; height: 100%; border: none;
+  }
+
+  .controls {
+    display: flex; align-items: center; gap: 14px;
+    padding: 10px 16px; background: #111; flex-wrap: wrap;
+  }
+  .controls label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.85rem; color: #ccc; cursor: pointer; user-select: none;
+  }
+  .toggle-switch { position: relative; width: 40px; height: 22px; }
+  .toggle-switch input { display: none; }
+  .slider {
+    position: absolute; inset: 0; background: #444;
+    border-radius: 22px; transition: 0.3s; cursor: pointer;
+  }
+  .slider::before {
+    content: ''; position: absolute;
+    width: 16px; height: 16px; left: 3px; top: 3px;
+    background: #fff; border-radius: 50%; transition: 0.3s;
+  }
+  input:checked + .slider { background: #6db83a; }
+  input:checked + .slider::before { transform: translateX(18px); }
+
+  .sync-info { margin-left: auto; font-size: 0.75rem; color: #666; }
+
+  /* Lyrics panel */
+  .lyrics-panel {
+    width: 100%; background: #111518;
+    border-radius: 12px; padding: 20px;
+    border: 1px solid #1e2e18;
+    max-height: 440px; overflow-y: auto; scroll-behavior: smooth;
+  }
+
+  .section-label {
+    font-size: 0.68rem; color: #6db83a; letter-spacing: 3px;
+    text-transform: uppercase; margin: 16px 0 6px;
+    padding: 3px 10px; background: #0d2010;
+    border-radius: 4px; display: inline-block;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  .stage-note { font-size: 0.8rem; color: #506040; font-style: italic; margin: 3px 0 8px; }
+
+  .lyric-line {
+    margin: 5px 0; line-height: 1.8;
+    padding: 3px 4px; border-radius: 4px;
+    border-left: 3px solid transparent;
+    transition: background 0.3s;
+  }
+  .lyric-line.active {
+    border-left-color: #6db83a;
+    padding-left: 10px;
+    background: #0d2010;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .jp-text { font-size: 1.1rem; color: #e8f0e0; }
+  .lyric-line.active .jp-text .word { color: #b5e878; }
+
+  .word {
+    display: inline; cursor: pointer;
+    border-radius: 3px; padding: 1px 2px;
+    transition: background 0.15s, color 0.15s;
+  }
+  .word:hover { background: #6db83a33; color: #b5e878; }
+
+  .ko-text {
+    font-size: 0.85rem; color: #8a9a7a; margin-top: 1px; display: none;
+  }
+  .ko-text.visible { display: block; }
+
+  /* Popup */
+  #popup { position: fixed; display: none; z-index: 999; pointer-events: none; }
+  #popup.show { display: block; }
+  .popup-box {
+    background: #0d2010; border: 1px solid #6db83a;
+    border-radius: 10px; padding: 14px 18px;
+    min-width: 230px; max-width: 320px;
+    box-shadow: 0 8px 30px #0009; pointer-events: all;
+    position: relative;
+  }
+  .popup-word { font-size: 1.4rem; font-weight: bold; color: #b5e878; margin-bottom: 2px; }
+  .popup-reading { font-size: 0.9rem; color: #8fd060; margin-bottom: 3px; }
+  .popup-romaji { font-size: 0.8rem; color: #6a9a4a; font-style: italic; margin-bottom: 8px; }
+  .popup-meaning {
+    font-size: 0.95rem; color: #e8f0e0;
+    border-top: 1px solid #1e3018; padding-top: 8px;
+  }
+  .popup-note { font-size: 0.8rem; color: #9ab08a; margin-top: 5px; }
+  .popup-close {
+    position: absolute; top: 8px; right: 10px;
+    cursor: pointer; color: #4a6a3a; font-size: 1rem;
+  }
+  .popup-close:hover { color: #b5e878; }
+
+  /* Vocab */
+  .vocab-section { width: 100%; }
+  .vocab-toggle-btn {
+    width: 100%; background: #0d2010; border: 1px solid #2a4020;
+    color: #9ab08a; padding: 10px 16px; border-radius: 8px;
+    cursor: pointer; font-size: 0.9rem; text-align: left; transition: background 0.2s;
+  }
+  .vocab-toggle-btn:hover { background: #122a14; }
+  .vocab-grid {
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+    gap: 8px; margin-top: 10px;
+  }
+  .vocab-grid.open { display: grid; }
+  .vocab-card {
+    background: #111518; border: 1px solid #1e3018;
+    border-radius: 8px; padding: 10px 12px;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .vocab-card:hover { border-color: #6db83a; }
+  .vocab-card .vc-jp { font-weight: bold; color: #b5e878; font-size: 1rem; }
+  .vocab-card .vc-read { font-size: 0.75rem; color: #6db83a; }
+  .vocab-card .vc-ko { font-size: 0.82rem; color: #c0d0b0; margin-top: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🌲 일본어 뮤직비디오 학습</h1>
+  <div class="subtitle">森のちいさなレストラン (모리노 치이사나 레스토랑)</div>
+  <p>일본어 자막 단어를 클릭하면 읽는 법과 뜻이 나와요</p>
+</header>
+
+<div class="main">
+
+  <div class="video-wrap">
+    <div class="yt-container">
+      <div id="ytPlayer"></div>
+    </div>
+    <div class="controls">
+      <label>
+        <span class="toggle-switch">
+          <input type="checkbox" id="koToggle" checked>
+          <span class="slider"></span>
+        </span>
+        한국어 자막
+      </label>
+      <label>
+        <span class="toggle-switch">
+          <input type="checkbox" id="romajiToggle">
+          <span class="slider"></span>
+        </span>
+        로마자 (ローマ字)
+      </label>
+      <label>
+        <span class="toggle-switch">
+          <input type="checkbox" id="autoScrollToggle" checked>
+          <span class="slider"></span>
+        </span>
+        자동 스크롤
+      </label>
+      <span class="sync-info" id="syncInfo">⏱ 00:00</span>
+    </div>
+  </div>
+
+  <div class="lyrics-panel" id="lyricsPanel"></div>
+
+  <div class="vocab-section">
+    <button class="vocab-toggle-btn" onclick="toggleVocab()">📚 단어장 펼치기 / 접기</button>
+    <div class="vocab-grid" id="vocabGrid"></div>
+  </div>
+
+</div>
+
+<div id="popup">
+  <div class="popup-box" id="popupBox">
+    <span class="popup-close" onclick="closePopup()">✕</span>
+    <div class="popup-word" id="pWord"></div>
+    <div class="popup-reading" id="pReading"></div>
+    <div class="popup-romaji" id="pRomaji"></div>
+    <div class="popup-meaning" id="pMeaning"></div>
+    <div class="popup-note" id="pNote"></div>
+  </div>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+// ─── Dictionary (일본어 단어 → 읽기 + 로마자 + 한국어 뜻) ──────────────
+const DICT = {
+  "どんぐり":     { read:"どんぐり", roma:"donguri",    meaning:"도토리",             note:"명사" },
+  "追いかけて":   { read:"おいかけて", roma:"oikakete",  meaning:"따라가서, 쫓아가서",  note:"動 追いかける의 て형" },
+  "着かない":     { read:"つかない",  roma:"tsukanai",  meaning:"도착하지 않아",       note:"動 着く의 부정형" },
+  "着く":         { read:"つく",      roma:"tsuku",     meaning:"도착하다",            note:"동사 (자동사)" },
+  "森":           { read:"もり",      roma:"mori",      meaning:"숲",                  note:"명사" },
+  "ちいさな":     { read:"ちいさな",  roma:"chiisana",  meaning:"작은",                note:"형용사 (連体形)" },
+  "レストラン":   { read:"レストラン", roma:"resutoran", meaning:"레스토랑",            note:"외래어 명사" },
+  "空っぽ":       { read:"からっぽ",  roma:"karappo",   meaning:"텅 빈, 공허한",       note:"형용사/명사" },
+  "ポケット":     { read:"ポケット",  roma:"poketto",   meaning:"주머니",              note:"외래어 명사" },
+  "弄って":       { read:"いじって",  roma:"ijitte",    meaning:"만지작거리며",         note:"動 弄る의 て형" },
+  "忘れた":       { read:"わすれた",  roma:"wasureta",  meaning:"잊어버린",            note:"動 忘れる의 과거형" },
+  "先に":         { read:"さきに",    roma:"saki ni",   meaning:"먼저",                note:"부사" },
+  "予約":         { read:"よやく",    roma:"yoyaku",    meaning:"예약",                note:"명사" },
+  "空席":         { read:"くうせき",  roma:"kuuseki",   meaning:"빈 자리, 공석",       note:"명사" },
+  "ランチ":       { read:"ランチ",    roma:"ranchi",    meaning:"점심",                note:"외래어 명사" },
+  "羽ばたいて":   { read:"はばたいて", roma:"habataite", meaning:"날갯짓하며",          note:"動 羽ばたく의 て형" },
+  "笑う":         { read:"わらう",    roma:"warau",     meaning:"웃다",                note:"동사" },
+  "小鳥":         { read:"ことり",    roma:"kotori",    meaning:"작은 새",             note:"명사" },
+  "真っ赤":       { read:"まっか",    roma:"makka",     meaning:"새빨간",              note:"형용사" },
+  "塗った":       { read:"ぬった",    roma:"nutta",     meaning:"칠한",                note:"動 塗る의 과거형" },
+  "トタン":       { read:"トタン",    roma:"totan",     meaning:"함석, 양철",          note:"명사" },
+  "屋根":         { read:"やね",      roma:"yane",      meaning:"지붕",                note:"명사" },
+  "メニュー":     { read:"メニュー",  roma:"menyu",     meaning:"메뉴",                note:"외래어 명사" },
+  "おすすめ":     { read:"おすすめ",  roma:"osusume",   meaning:"추천",                note:"명사/형용사" },
+  "キッチン":     { read:"キッチン",  roma:"kicchin",   meaning:"주방, 부엌",          note:"외래어 명사" },
+  "聞こえてくる": { read:"きこえてくる", roma:"kikoete kuru", meaning:"들려오다",       note:"動 聞こえる + くる" },
+  "バイオリン":   { read:"バイオリン", roma:"baiorin",  meaning:"바이올린",            note:"악기" },
+  "フルート":     { read:"フルート",  roma:"furuuto",   meaning:"플루트",              note:"악기" },
+  "チェロ":       { read:"チェロ",    roma:"chero",     meaning:"첼로",                note:"악기" },
+  "ビオラ":       { read:"ビオラ",    roma:"biora",     meaning:"비올라",              note:"악기" },
+  "いらっしゃい": { read:"いらっしゃい", roma:"irasshai", meaning:"어서오세요",         note:"경어 표현" },
+  "お腹いっぱい": { read:"おなかいっぱい", roma:"onaka ippai", meaning:"배부르게, 배불리", note:"관용구" },
+  "食べたら":     { read:"たべたら",  roma:"tabetara",  meaning:"먹으면",              note:"動 食べる의 조건형" },
+  "眠ります":     { read:"ねむります", roma:"nemurimasu", meaning:"잠듭니다",           note:"動 眠る의 정중형" },
+  "みなさま":     { read:"みなさま",  roma:"minasama",  meaning:"여러분 (경어)",        note:"경어 호칭" },
+  "さようなら":   { read:"さようなら", roma:"sayounara", meaning:"안녕히 가세요",        note:"작별 인사" },
+  "明日":         { read:"あした",    roma:"ashita",    meaning:"내일",                note:"명사" },
+  "えとせとら":   { read:"えとせとら", roma:"etosetora", meaning:"기타 등등 (etcetera)", note:"외래어" },
+  "右":           { read:"みぎ",      roma:"migi",      meaning:"오른쪽",              note:"명사" },
+  "左":           { read:"ひだり",    roma:"hidari",    meaning:"왼쪽",                note:"명사" },
+  "忙しい":       { read:"いそがしい", roma:"isogashii", meaning:"바쁘다",              note:"형용사" },
+  "手のひら":     { read:"てのひら",  roma:"tenohira",  meaning:"손바닥",              note:"명사" },
+  "小熊":         { read:"こぐま",    roma:"koguma",    meaning:"작은 곰, 아기 곰",    note:"명사" },
+  "踊り出す":     { read:"おどりだす", roma:"odoridasu", meaning:"춤추기 시작하다",     note:"動 踊る＋出す" },
+  "カルパッチョ": { read:"カルパッチョ", roma:"karupaccio", meaning:"카르파초 (요리)",  note:"이탈리아 요리" },
+  "パエリア":     { read:"パエリア",  roma:"paeria",    meaning:"파에야 (요리)",        note:"스페인 요리" },
+  "オードブル":   { read:"オードブル", roma:"ooduburu",  meaning:"오르되브르 (전채)",   note:"프랑스어 요리" },
+  "リゾット":     { read:"リゾット",  roma:"rizotto",   meaning:"리조또 (요리)",        note:"이탈리아 요리" },
+  "デザート":     { read:"デザート",  roma:"dezaato",   meaning:"디저트",              note:"외래어 명사" },
+  "墓場":         { read:"はかば",    roma:"hakaba",    meaning:"무덤, 묘지",          note:"명사" },
+  "持って行く":   { read:"もっていく", roma:"motte iku", meaning:"가져가다",            note:"動 持つ + 行く" },
+  "今夜":         { read:"こんや",    roma:"konya",     meaning:"오늘 밤",             note:"명사" },
+  "最後":         { read:"さいご",    roma:"saigo",     meaning:"마지막",              note:"명사" },
+  "フルコース":   { read:"フルコース", roma:"furu koosu", meaning:"풀코스",             note:"외래어" },
+};
+
+// ─── Lyrics ───────────────────────────────────────────────────────────
+// Timestamps from user + distributed within blocks
+const LYRICS = [
+  { t: 0,   section: "Intro", stage: "( 잔잔한 피아노와 기타 )" },
+
+  { t: 9,   section: "A멜로디" },
+  { t: 9,   jp: "どんぐりを追いかけても　着かないよ", roma: "Donguri wo oikakete mo tsukanai yo",
+             ko: "도토리를 따라가도 도착할 수 없어" },
+  { t: 13,  jp: "森のちいさなレストラン", roma: "Mori no chiisana resutoran",
+             ko: "숲속의 작은 레스토랑" },
+
+  { t: 17,  jp: "空っぽのポケットを弄って", roma: "Karappo no poketto wo ijitte",
+             ko: "텅 빈 주머니를 만지작거리며" },
+  { t: 21,  jp: "忘れた人から先に着く", roma: "Wasureta hito kara saki ni tsuku",
+             ko: "잊어버린 사람부터 먼저 도착해" },
+
+  { t: 26,  jp: "予約なんてしなくていい", roma: "Yoyaku nante shinakute ii",
+             ko: "예약 같은 건 안 해도 돼" },
+  { t: 30,  jp: "森のちいさなレストラン", roma: "Mori no chiisana resutoran",
+             ko: "숲속의 작은 레스토랑" },
+
+  { t: 34,  jp: "空席だらけのランチタイム", roma: "Kuuseki darake no ranchi taimu",
+             ko: "빈자리 가득한 점심시간" },
+  { t: 38,  jp: "羽ばたいて笑う小鳥", roma: "Habataite warau kotori",
+             ko: "날갯짓하며 웃는 작은 새" },
+
+  { t: 60,  section: "B멜로디" },
+  { t: 60,  jp: "真っ赤に塗ったトタン屋根", roma: "Makka ni nutta totan yane",
+             ko: "새빨갛게 칠한 함석 지붕" },
+  { t: 64,  jp: "メニューはおすすめだけ", roma: "Menyu wa osusume dake",
+             ko: "메뉴는 추천 메뉴뿐" },
+
+  { t: 68,  jp: "キッチンから聞こえてくる", roma: "Kicchin kara kikoete kuru",
+             ko: "주방에서 들려오는" },
+  { t: 72,  jp: "バイオリン　フルート　チェロとビオラ", roma: "Baiorin, Furuuto, Chero to Biora",
+             ko: "바이올린　플루트　첼로와 비올라" },
+
+  { t: 77,  section: "후렴 (サビ)" },
+  { t: 77,  jp: "いらっしゃい　いらっしゃい　レストランへ", roma: "Irasshai irasshai resutoran e",
+             ko: "어서오세요　어서오세요　레스토랑에" },
+  { t: 82,  jp: "お腹いっぱい食べたら眠ります", roma: "Onaka ippai tabetara nemurimasu",
+             ko: "배부르게 먹으면 잠이 듭니다" },
+
+  { t: 85,  jp: "では　みなさま　さようなら", roma: "De wa, minasama, sayounara",
+             ko: "그럼　여러분　안녕히 가세요" },
+  { t: 90,  jp: "明日は明日　えとせとら", roma: "Ashita wa ashita, etosetora",
+             ko: "내일은 내일　기타 등등" },
+
+  { t: 111, section: "간주 (間奏)" },
+
+  { t: 111, jp: "右から左へ　忙しい", roma: "Migi kara hidari e, isogashii",
+             ko: "오른쪽에서 왼쪽으로　바빠요" },
+  { t: 116, jp: "手のひらの小熊も踊り出す", roma: "Tenohira no koguma mo odoridasu",
+             ko: "손바닥 위의 작은 곰도 춤추기 시작해" },
+
+  { t: 120, jp: "カルパッチョ　パエリア　オードブル　リゾット　でもデザートはない",
+             roma: "Karupaccio, paeria, ooduburu, rizotto, demo dezaato wa nai",
+             ko: "카르파초　파에야　오르되브르　리조또　하지만 디저트는 없어" },
+
+  { t: 129, jp: "墓場まで持って行きましょう", roma: "Hakaba made motte ikimasyou",
+             ko: "무덤까지 가져가기로 해요" },
+
+  { t: 138, jp: "今夜はあなたのための最後のフルコース", roma: "Konya wa anata no tame no saigo no furu koosu",
+             ko: "오늘 밤은 당신을 위한 마지막 풀코스" },
+];
+
+// ─── Build lyrics DOM ─────────────────────────────────────────────────
+const panel = document.getElementById('lyricsPanel');
+
+function tokenize(text) {
+  // Split on spaces and punctuation, keep each token as a clickable word span
+  return text.split(/([\s　・、。]+)/).map(tok => {
+    if (!tok || /^[\s　・、。]+$/.test(tok)) return tok;
+    const span = document.createElement('span');
+    span.className = 'word';
+    span.textContent = tok;
+    span.dataset.word = tok;
+    span.addEventListener('click', e => showPopup(e, tok));
+    return span;
+  });
+}
+
+LYRICS.forEach((line, i) => {
+  if (line.section) {
+    const lbl = document.createElement('div');
+    lbl.className = 'section-label';
+    lbl.textContent = line.section;
+    panel.appendChild(lbl);
+  }
+  if (line.stage) {
+    const stg = document.createElement('div');
+    stg.className = 'stage-note';
+    stg.textContent = line.stage;
+    panel.appendChild(stg);
+  }
+  if (!line.jp) return;
+
+  const div = document.createElement('div');
+  div.className = 'lyric-line';
+  div.dataset.index = i;
+  div.dataset.time = line.t;
+
+  const jpDiv = document.createElement('div');
+  jpDiv.className = 'jp-text';
+  tokenize(line.jp).forEach(n => {
+    if (typeof n === 'string') jpDiv.appendChild(document.createTextNode(n));
+    else jpDiv.appendChild(n);
+  });
+
+  const koDiv = document.createElement('div');
+  koDiv.className = 'ko-text';
+  if (line.ko) koDiv.textContent = line.ko;
+
+  const romaDiv = document.createElement('div');
+  romaDiv.className = 'ko-text romaji-line';
+  romaDiv.style.color = '#6a9a4a';
+  romaDiv.style.fontSize = '0.8rem';
+  if (line.roma) romaDiv.textContent = line.roma;
+
+  div.appendChild(jpDiv);
+  div.appendChild(romaDiv);
+  div.appendChild(koDiv);
+  panel.appendChild(div);
+});
+
+// ─── Toggles ──────────────────────────────────────────────────────────
+const koToggle = document.getElementById('koToggle');
+const romajiToggle = document.getElementById('romajiToggle');
+
+function applyToggles() {
+  document.querySelectorAll('.ko-text:not(.romaji-line)').forEach(el =>
+    el.classList.toggle('visible', koToggle.checked));
+  document.querySelectorAll('.romaji-line').forEach(el =>
+    el.classList.toggle('visible', romajiToggle.checked));
+}
+koToggle.addEventListener('change', applyToggles);
+romajiToggle.addEventListener('change', applyToggles);
+applyToggles();
+
+// ─── YouTube IFrame API ───────────────────────────────────────────────
+let player = null;
+
+window.onYouTubeIframeAPIReady = function() {
+  player = new YT.Player('ytPlayer', {
+    videoId: 'EYGGd2NKwtI',
+    host: 'https://www.youtube-nocookie.com',
+    playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+    events: { onReady: () => setInterval(syncLyrics, 250) }
+  });
+};
+
+function fmt(s) {
+  s = Math.floor(s || 0);
+  return String(Math.floor(s/60)).padStart(2,'0') + ':' + String(s%60).padStart(2,'0');
+}
+
+function syncLyrics() {
+  if (!player || typeof player.getCurrentTime !== 'function') return;
+  const t = player.getCurrentTime();
+  document.getElementById('syncInfo').textContent = '⏱ ' + fmt(t);
+
+  const lines = [...document.querySelectorAll('.lyric-line')];
+  let activeIdx = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (parseFloat(lines[i].dataset.time) <= t) activeIdx = i;
+    else break;
+  }
+
+  lines.forEach((l, i) => l.classList.toggle('active', i === activeIdx));
+
+  if (activeIdx >= 0 && document.getElementById('autoScrollToggle').checked) {
+    const el = lines[activeIdx];
+    const panelEl = document.getElementById('lyricsPanel');
+    const target = el.offsetTop - panelEl.offsetTop - panelEl.clientHeight / 2 + el.clientHeight / 2;
+    panelEl.scrollTo({ top: target, behavior: 'smooth' });
+  }
+}
+
+// ─── Popup ────────────────────────────────────────────────────────────
+const popup = document.getElementById('popup');
+
+function findEntry(word) {
+  if (DICT[word]) return DICT[word];
+  // partial match
+  for (const [key, val] of Object.entries(DICT)) {
+    if (word.includes(key) || key.includes(word)) return val;
+  }
+  return null;
+}
+
+function showPopup(e, word) {
+  e.stopPropagation();
+  const entry = findEntry(word);
+  document.getElementById('pWord').textContent = word;
+  if (entry) {
+    document.getElementById('pReading').textContent = '読み方: ' + entry.read;
+    document.getElementById('pRomaji').textContent = entry.roma;
+    document.getElementById('pMeaning').textContent = '뜻: ' + entry.meaning;
+    document.getElementById('pNote').textContent = entry.note ? '📌 ' + entry.note : '';
+  } else {
+    document.getElementById('pReading').textContent = '';
+    document.getElementById('pRomaji').textContent = '';
+    document.getElementById('pMeaning').textContent = '사전에 없는 단어입니다.';
+    document.getElementById('pNote').textContent = '';
+  }
+  popup.classList.add('show');
+
+  let left = e.clientX + 12, top = e.clientY - 20;
+  const w = 300, h = 150;
+  if (left + w > window.innerWidth - 10) left = e.clientX - w - 12;
+  if (top + h > window.innerHeight - 10) top = window.innerHeight - h - 10;
+  if (top < 10) top = 10;
+  popup.style.left = left + 'px';
+  popup.style.top  = top  + 'px';
+  popup.style.transform = '';
+}
+
+function closePopup() { popup.classList.remove('show'); }
+document.addEventListener('click', e => { if (!popup.contains(e.target)) closePopup(); });
+
+// ─── Vocab grid ───────────────────────────────────────────────────────
+const vocabGrid = document.getElementById('vocabGrid');
+Object.entries(DICT).forEach(([word, data]) => {
+  const card = document.createElement('div');
+  card.className = 'vocab-card';
+  card.innerHTML = `<div class="vc-jp">${word}</div>
+    <div class="vc-read">${data.read} · ${data.roma}</div>
+    <div class="vc-ko">${data.meaning}</div>`;
+  card.addEventListener('click', () => {
+    document.getElementById('pWord').textContent = word;
+    document.getElementById('pReading').textContent = '読み方: ' + data.read;
+    document.getElementById('pRomaji').textContent = data.roma;
+    document.getElementById('pMeaning').textContent = '뜻: ' + data.meaning;
+    document.getElementById('pNote').textContent = data.note ? '📌 ' + data.note : '';
+    popup.classList.add('show');
+    popup.style.left = '50%';
+    popup.style.top  = '50%';
+    popup.style.transform = 'translate(-50%,-50%)';
+  });
+  vocabGrid.appendChild(card);
+});
+
+function toggleVocab() {
+  document.getElementById('vocabGrid').classList.toggle('open');
+}
+</script>
+</body>
+</html>
